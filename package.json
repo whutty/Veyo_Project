@@ -12,5 +12,16 @@
   "type": "commonjs",
   "devDependencies": {
     "electron": "^39.2.7"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/whutty/Veyo_Project.git"
+  },
+  "bugs": {
+    "url": "https://github.com/whutty/Veyo_Project/issues"
+  },
+  "homepage": "https://github.com/whutty/Veyo_Project#readme",
+  "dependencies": {
+    "express": "^5.2.1"
   }
 }
