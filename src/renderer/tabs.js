@@ -201,6 +201,54 @@ function restoreTabs() {
     createNewTab();
 }
 
+function applyTheme(theme) {
+    document.body.setAttribute('data-theme', theme);
+}
+
+function applyPerformance(mode) {
+    document.body.setAttribute('data-performance', mode);
+}
+
+function applyLanguage(lang) {
+    const i18n = {
+        pt: {
+            back: 'Voltar',
+            forward: 'Avançar',
+            reload: 'Recarregar',
+            devtools: 'DevTools (F12)',
+            url_placeholder: 'Pesquisar com o Google ou inserir endereço',
+            title: 'Veyo Browser',
+        },
+        en: {
+            back: 'Back',
+            forward: 'Forward',
+            reload: 'Reload',
+            devtools: 'DevTools (F12)',
+            url_placeholder: 'Search with Google or enter address',
+            title: 'Veyo Browser',
+        },
+        es: {
+            back: 'Atrás',
+            forward: 'Adelante',
+            reload: 'Recargar',
+            devtools: 'DevTools (F12)',
+            url_placeholder: 'Buscar con Google o ingresar dirección',
+            title: 'Veyo Browser',
+        },
+    };
+
+    const dict = i18n[lang] || i18n.pt;
+    document.title = dict.title;
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+        const key = el.getAttribute('data-i18n-title');
+        if (dict[key]) el.setAttribute('title', dict[key]);
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (dict[key]) el.setAttribute('placeholder', dict[key]);
+    });
+}
+
 // Atalhos de Teclado
 function handleKeyboard(e) {
     // Ctrl+T: Nova aba
@@ -263,6 +311,24 @@ function toggleDevTools() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    const savedTheme = localStorage.getItem('veyo-theme') || 'light';
+    applyTheme(savedTheme);
+    const savedPerf = localStorage.getItem('veyo-performance') || 'normal';
+    applyPerformance(savedPerf);
+    const savedLang = localStorage.getItem('veyo-lang') || 'pt';
+    applyLanguage(savedLang);
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'veyo-theme') {
+            applyTheme(e.newValue || 'light');
+        }
+        if (e.key === 'veyo-performance') {
+            applyPerformance(e.newValue || 'normal');
+        }
+        if (e.key === 'veyo-lang') {
+            applyLanguage(e.newValue || 'pt');
+        }
+    });
+
     const urlInput = document.getElementById('url-input');
     if (urlInput) {
         urlInput.addEventListener('keypress', (e) => {
