@@ -4,14 +4,17 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "build": "electron-builder",
+    "build-win": "electron-builder --win --publish never"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
-    "electron": "^39.2.7"
+    "electron": "^39.2.7",
+    "electron-builder": "^25.1.8"
   },
   "repository": {
     "type": "git",
@@ -21,6 +24,22 @@
     "url": "https://github.com/whutty/Veyo_Project/issues"
   },
   "homepage": "https://github.com/whutty/Veyo_Project#readme",
+  "build": {
+    "appId": "com.veyo.app",
+    "productName": "Veyo",
+    "files": [
+      "main.js",
+      "index.html",
+      "src/**/*",
+      "node_modules/**/*"
+    ],
+    "publish": null,
+    "win": {
+      "target": [
+        "portable"
+      ]
+    }
+  },
   "dependencies": {
     "express": "^5.2.1"
   }

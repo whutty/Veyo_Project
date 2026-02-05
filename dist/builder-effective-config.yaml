@@ -1,0 +1,16 @@
+directories:
+  output: dist
+  buildResources: build
+appId: com.veyo.app
+productName: Veyo
+files:
+  - filter:
+      - main.js
+      - index.html
+      - src/**/*
+      - node_modules/**/*
+publish: null
+win:
+  target:
+    - portable
+electronVersion: 39.2.7

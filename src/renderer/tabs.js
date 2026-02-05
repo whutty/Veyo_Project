@@ -1,6 +1,41 @@
 let counter = 0;
+const NEW_TAB_URL = 'file://' + window.location.pathname.replace(/index\.html$/, '') + 'src/renderer/newtab.html';
 
-function createNewTab(url = "https://www.google.com") {
+console.log('NEW_TAB_URL:', NEW_TAB_URL);
+
+function getDomainFromURL(url) {
+    try {
+        const urlObj = new URL(url);
+        return urlObj.hostname || url;
+    } catch(e) {
+        console.error('Error parsing URL:', url, e);
+        return url;
+    }
+}
+
+function getFullURL(url) {
+    try {
+        const urlObj = new URL(url);
+        return urlObj.href;
+    } catch(e) {
+        return url;
+    }
+}
+
+function validateAndFormatURL(input) {
+    input = input.trim();
+    if (!input) return null;
+    
+    // Se parecer URL
+    if (input.includes('.') && !input.includes(' ')) {
+        return input.startsWith('http') ? input : 'https://' + input;
+    }
+    
+    // Se não, fazer busca no Google
+    return 'https://www.google.com/search?q=' + encodeURIComponent(input);
+}
+
+function createNewTab(url = NEW_TAB_URL) {
     counter++;
     const id = `t-${counter}`;
 
@@ -20,7 +55,56 @@ function createNewTab(url = "https://www.google.com") {
     const wv = document.createElement('webview');
     wv.id = id;
     wv.src = url;
+    wv.preload = 'src/preload.js';
     document.getElementById('content').appendChild(wv);
+
+    // Eventos de carregamento
+    wv.addEventListener('did-start-loading', () => {
+        console.log('Loading started:', id, url);
+        showLoadingIndicator();
+        updateProgressBar(10);
+    });
+
+    wv.addEventListener('did-stop-loading', () => {
+        console.log('Loading stopped:', id);
+        hideLoadingIndicator();
+        updateProgressBar(100);
+        setTimeout(() => updateProgressBar(0), 300);
+    });
+
+    wv.addEventListener('did-finish-load', () => {
+        console.log('Page loaded:', id, wv.getURL());
+        const titleSpan = tab.querySelector('span:first-child');
+        if (titleSpan) {
+            try { 
+                titleSpan.innerText = wv.getTitle().substring(0, 15); 
+            } catch(e) { console.error('Error updating title:', e); }
+        }
+        updateURLBar(id);
+    });
+
+    wv.addEventListener('page-title-updated', (e) => {
+        console.log('Title updated:', e.title);
+        const titleSpan = tab.querySelector('span:first-child');
+        if (titleSpan) titleSpan.innerText = e.title.substring(0, 15);
+    });
+
+    wv.addEventListener('page-favicon-updated', (e) => {
+        console.log('Favicon updated');
+    });
+
+    wv.addEventListener('crashed', () => {
+        console.error('Webview crashed');
+        wv.loadURL('data:text/html,<div style="padding:20px;font-family:system-ui;"><h1>Página Parou de Funcionar</h1><p>Tente recarregar.</p></div>');
+    });
+
+    wv.addEventListener('render-process-gone', (e) => {
+        console.error('Render process gone:', e.reason);
+    });
+
+    wv.addEventListener('did-fail-load', (e) => {
+        console.error('Failed to load:', e.errorCode, e.errorDescription);
+    });
 
     // trigger enter animation
     requestAnimationFrame(() => {
@@ -28,21 +112,8 @@ function createNewTab(url = "https://www.google.com") {
         tab.classList.add('enter-active');
     });
 
-    wv.addEventListener('did-finish-load', () => {
-        const titleSpan = tab.querySelector('span:first-child');
-        if (titleSpan) {
-            try { 
-                titleSpan.innerText = wv.getTitle().substring(0, 15); 
-            } catch(e) {}
-        }
-        if(wv.classList.contains('active')) {
-            try {
-                document.getElementById('url-input').value = wv.getURL();
-            } catch(e) {}
-        }
-    });
-
     activateTab(id);
+    saveTabsState();
 }
 
 function activateTab(id) {
@@ -51,9 +122,21 @@ function activateTab(id) {
     if (btn) btn.classList.add('active');
     const activeWv = document.getElementById(id);
     if (activeWv) activeWv.classList.add('active');
-    try { 
-        document.getElementById('url-input').value = activeWv.getURL(); 
-    } catch(e) {}
+    updateURLBar(id);
+}
+
+function updateURLBar(id) {
+    const wv = document.getElementById(id);
+    const urlInput = document.getElementById('url-input');
+    if (wv && urlInput) {
+        try {
+            const fullURL = wv.getURL();
+            const domain = getDomainFromURL(fullURL);
+            urlInput.value = domain;
+            urlInput.dataset.fullUrl = fullURL;
+            urlInput.title = fullURL;
+        } catch(e) {}
+    }
 }
 
 function closeTab(e, id) {
@@ -77,7 +160,79 @@ function closeTab(e, id) {
         } else {
             createNewTab();
         }
+        saveTabsState();
     }, 250);
+}
+
+function showLoadingIndicator() {
+    const indicator = document.getElementById('loading-indicator');
+    if (indicator) indicator.classList.remove('hidden');
+}
+
+function hideLoadingIndicator() {
+    const indicator = document.getElementById('loading-indicator');
+    if (indicator) indicator.classList.add('hidden');
+}
+
+function updateProgressBar(progress) {
+    const bar = document.getElementById('progress-bar');
+    if (bar) bar.style.width = progress + '%';
+}
+
+function saveTabsState() {
+    const tabs = Array.from(document.querySelectorAll('.tab')).map(tab => {
+        const wv = document.getElementById(tab.id.replace('btn-', ''));
+        return wv ? wv.getURL() : '';
+    });
+    localStorage.setItem('savedTabs', JSON.stringify(tabs));
+}
+
+function restoreTabs() {
+    const saved = localStorage.getItem('savedTabs');
+    if (saved) {
+        try {
+            const tabs = JSON.parse(saved);
+            if (tabs.length > 0) {
+                tabs.forEach(url => createNewTab(url));
+                return;
+            }
+        } catch(e) {}
+    }
+    createNewTab();
+}
+
+// Atalhos de Teclado
+function handleKeyboard(e) {
+    // Ctrl+T: Nova aba
+    if ((e.ctrlKey || e.metaKey) && e.key === 't') {
+        e.preventDefault();
+        createNewTab();
+    }
+    // Ctrl+W: Fechar aba
+    if ((e.ctrlKey || e.metaKey) && e.key === 'w') {
+        e.preventDefault();
+        const activeTab = document.querySelector('.tab.active');
+        if (activeTab) {
+            const id = activeTab.id.replace('btn-', '');
+            closeTab({ stopPropagation: () => {} }, id);
+        }
+    }
+    // Ctrl+Tab: Próxima aba
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Tab') {
+        e.preventDefault();
+        const tabs = document.querySelectorAll('.tab');
+        const activeIdx = Array.from(tabs).findIndex(t => t.classList.contains('active'));
+        const nextIdx = (activeIdx + 1) % tabs.length;
+        activateTab(tabs[nextIdx].id.replace('btn-', ''));
+    }
+    // Ctrl+Shift+Tab: Aba anterior
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Tab') {
+        e.preventDefault();
+        const tabs = document.querySelectorAll('.tab');
+        const activeIdx = Array.from(tabs).findIndex(t => t.classList.contains('active'));
+        const prevIdx = (activeIdx - 1 + tabs.length) % tabs.length;
+        activateTab(tabs[prevIdx].id.replace('btn-', ''));
+    }
 }
 
 // Atalhos de Navegação
@@ -96,19 +251,34 @@ function reload() {
     if (w) w.reload(); 
 }
 
+function toggleDevTools() {
+    const w = document.querySelector('webview.active');
+    if (w) {
+        if (w.isDevToolsOpened()) {
+            w.closeDevTools();
+        } else {
+            w.openDevTools();
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const urlInput = document.getElementById('url-input');
     if (urlInput) {
         urlInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                let val = e.target.value;
-                if(!val.startsWith('http')) val = 'https://' + val;
-                const w = document.querySelector('webview.active');
-                if (w) w.loadURL(val);
+                const url = validateAndFormatURL(e.target.value);
+                if (url) {
+                    const w = document.querySelector('webview.active');
+                    if (w) w.loadURL(url);
+                }
             }
         });
     }
 
-    // Iniciar com uma aba
-    createNewTab();
+    // Atalhos globais
+    document.addEventListener('keydown', handleKeyboard);
+
+    // Restaurar abas salvas ou criar uma nova
+    restoreTabs();
 });

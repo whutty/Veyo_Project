@@ -4,28 +4,29 @@
     <meta charset="UTF-8">
     <link rel="stylesheet" href="src/styles/tabs.css">
 </head>
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" href="src/styles/tabs.css">
-</head>
 <body>
 
     <div id="tabs-bar">
         <div id="tabs-list" style="display:flex; gap:4px;"></div>
-        <button class="add-tab" onclick="createNewTab()">+</button>
+        <button class="add-tab" onclick="createNewTab()" title="Nova Aba (Ctrl+T)">+</button>
     </div>
 
+    <div id="progress-bar" class="progress-bar"></div>
+
     <div id="nav-bar">
-        <span class="nav-icon" onclick="back()">←</span>
-        <span class="nav-icon" onclick="forward()">→</span>
-        <span class="nav-icon" onclick="reload()">↻</span>
+        <span class="nav-icon" onclick="back()" title="Voltar">←</span>
+        <span class="nav-icon" onclick="forward()" title="Avançar">→</span>
+        <span class="nav-icon" onclick="reload()" title="Recarregar">↻</span>
+        <span class="nav-icon" onclick="toggleDevTools()" title="DevTools (F12)">🔧</span>
         
         <div id="url-container">
             <span style="color: #666;">🛡️</span>
             <input type="text" id="url-input" placeholder="Pesquisar com o Google ou inserir endereço">
         </div>
+    </div>
+
+    <div id="loading-indicator" class="loading-indicator hidden">
+        <div class="spinner"></div>
     </div>
 
     <div id="content"></div>
