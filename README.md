@@ -1,7 +1,3 @@
-This is the veyo browser, a browser to be yours, make it looks like you or even better!
-
-
-
 
 
 
